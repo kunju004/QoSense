@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { query, pool } = require('./index');
+const { query } = require('./index');
 
 const migrations = [
   `CREATE TABLE IF NOT EXISTS users (
@@ -66,10 +66,21 @@ const migrations = [
 
 async function autoMigrate() {
   console.log('Running auto migrations...');
+  console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+  console.log('DB_HOST:', process.env.DB_HOST);
   for (const sql of migrations) {
-    await query(sql);
+    try {
+      await query(sql);
+      const name = sql.match(/TABLE IF NOT EXISTS (\w+)/)?.[1]
+                || sql.match(/INDEX IF NOT EXISTS (\w+)/)?.[1]
+                || 'statement';
+      console.log('done:', name);
+    } catch(err) {
+      console.error('Migration error:', err.message);
+      throw err;
+    }
   }
-  console.log('Migrations complete.');
+  console.log('All migrations complete!');
 }
 
 module.exports = autoMigrate;
